@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bike details — RideHub</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header" id="site-nav"></header>
+    <main class="container">
+      <div id="msg"></div>
+      <div id="content"></div>
+      <section style="margin-top: 2rem">
+        <h2>Reviews</h2>
+        <div id="reviews"></div>
+        <div class="form-panel" style="max-width: 560px; margin-top: 1rem" id="review-box">
+          <h3>Write a review</h3>
+          <p style="color: var(--muted); font-size: 0.9rem">
+            You can review after you have a confirmed booking for this bike (booking ID optional if unique
+            review).
+          </p>
+          <form id="form-review">
+            <div class="form-group">
+              <label>Rating</label>
+              <select id="rv-rating" required>
+                <option value="5">5</option>
+                <option value="4">4</option>
+                <option value="3">3</option>
+                <option value="2">2</option>
+                <option value="1">1</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Booking ID (optional)</label>
+              <input type="number" id="rv-booking" min="1" />
+            </div>
+            <div class="form-group">
+              <label>Comment</label>
+              <textarea id="rv-comment"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit review</button>
+          </form>
+        </div>
+      </section>
+    </main>
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+
+      async function loadBike() {
+        const msg = document.getElementById('msg');
+        if (!id) {
+          msg.innerHTML = '<div class="msg msg-error">Missing bike id</div>';
+          return;
+        }
+        try {
+          const r = await api.get('/bikes/' + id);
+          const b = r.data;
+          document.getElementById('content').innerHTML =
+            '<div class="detail-layout">' +
+            '<img class="detail-img" src="' +
+            b.image_url +
+            '" alt="" />' +
+            '<div>' +
+            '<h1>' +
+            b.brand +
+            ' ' +
+            b.model +
+            '</h1>' +
+            '<p class="bike-meta">' +
+            b.type +
+            '</p>' +
+            '<p>' +
+            (b.description || '') +
+            '</p>' +
+            '<div class="detail-specs">' +
+            '<p><strong>Price:</strong> $' +
+            Number(b.price_per_day).toFixed(2) +
+            ' / day</p>' +
+            '<p><strong>Rating:</strong> ★ ' +
+            Number(b.rating_avg).toFixed(1) +
+            ' (' +
+            b.rating_count +
+            ' reviews)</p>' +
+            '<p><strong>Stock:</strong> ' +
+            b.stock +
+            '</p>' +
+            '<a class="btn btn-primary" href="booking.html?bike_id=' +
+            b.id +
+            '">Book this bike</a>' +
+            '</div></div></div>';
+
+          const rev = await api.get('/reviews?bike_id=' + id);
+          const box = document.getElementById('reviews');
+          box.innerHTML = rev.data
+            .map(function (x) {
+              return (
+                '<div class="review-item"><strong>' +
+                (x.author_name || 'Rider') +
+                '</strong> · ★ ' +
+                x.rating +
+                '<p>' +
+                (x.comment || '') +
+                '</p></div>'
+              );
+            })
+            .join('');
+        } catch (err) {
+          msg.innerHTML =
+            '<div class="msg msg-error">' + (err.body?.message || err.message) + '</div>';
+        }
+      }
+
+      document.getElementById('form-review').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        if (!auth.user()) {
+          window.location.href = 'login.html';
+          return;
+        }
+        const bid = document.getElementById('rv-booking').value;
+        try {
+          await api.post('/reviews', {
+            bike_id: Number(id),
+            booking_id: bid ? Number(bid) : undefined,
+            rating: Number(document.getElementById('rv-rating').value),
+            comment: document.getElementById('rv-comment').value.trim() || undefined,
+          });
+          document.getElementById('msg').innerHTML =
+            '<div class="msg msg-success">Review submitted</div>';
+          loadBike();
+        } catch (err) {
+          document.getElementById('msg').innerHTML =
+            '<div class="msg msg-error">' + (err.body?.message || err.message) + '</div>';
+        }
+      });
+
+      loadBike();
+    </script>
+  </body>
+</html>

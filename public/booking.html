@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Book — RideHub</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header" id="site-nav"></header>
+    <main class="container">
+      <h1>Book a bike</h1>
+      <div id="msg"></div>
+      <div class="form-panel" style="max-width: 560px">
+        <form id="form-book">
+          <div class="form-group">
+            <label>Bike ID</label>
+            <input type="number" id="bike_id" data-testid="book-bike-id" required min="1" />
+          </div>
+          <div class="form-group">
+            <label>Pick-up (local)</label>
+            <input type="datetime-local" id="pickup" data-testid="book-pickup" required />
+          </div>
+          <div class="form-group">
+            <label>Drop-off (local)</label>
+            <input type="datetime-local" id="dropoff" data-testid="book-dropoff" required />
+          </div>
+          <div class="form-group">
+            <label>Notes</label>
+            <textarea id="notes" maxlength="500"></textarea>
+          </div>
+          <p class="calendar-hint">Pick-up must be in the future; drop-off after pick-up.</p>
+          <button type="submit" class="btn btn-primary" data-testid="book-submit">Create booking</button>
+        </form>
+      </div>
+    </main>
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script>
+      if (!auth.user()) window.location.href = 'login.html';
+
+      const params = new URLSearchParams(window.location.search);
+      const preset = params.get('bike_id');
+      if (preset) document.getElementById('bike_id').value = preset;
+
+      function toIso(localStr) {
+        return new Date(localStr).toISOString();
+      }
+
+      document.getElementById('form-book').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const msg = document.getElementById('msg');
+        msg.innerHTML = '';
+        try {
+          const r = await api.post('/bookings', {
+            bike_id: Number(document.getElementById('bike_id').value),
+            pickup_datetime: toIso(document.getElementById('pickup').value),
+            dropoff_datetime: toIso(document.getElementById('dropoff').value),
+            notes: document.getElementById('notes').value.trim() || undefined,
+          });
+          msg.innerHTML =
+            '<div class="msg msg-success">Booking #' +
+            r.data.id +
+            ' created. <a href="payment.html?booking_id=' +
+            r.data.id +
+            '">Pay now</a></div>';
+        } catch (err) {
+          msg.innerHTML =
+            '<div class="msg msg-error">' + (err.body?.message || err.message) + '</div>';
+        }
+      });
+    </script>
+  </body>
+</html>

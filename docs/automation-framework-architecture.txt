@@ -1,0 +1,42 @@
+Bike Rental — Playwright Automation Architecture (Text Diagram)
+================================================================
+
++---------------------------+
+|   playwright.config.cjs   |
+|  (globalSetup, webServer, |
+|   reporters, parallel)    |
++-------------+-------------+
+              |
+              v
++-------------+-------------+
+|  tests/playwright/        |
+|  global-setup.cjs         |--> npm run db:init (MySQL seed)
++-------------+-------------+
+              |
+              v
++-------------+-------------+
+|  specs/*.spec.js          |
+|  (@playwright/test)       |
++------+-----------+--------+
+       |           |
+       v           v
++------+---+   +---+------+
+| Page     |   | utils/   |
+| Objects  |   | dates,   |
+| (POM)    |   | waits    |
++------+---+   +----------+
+       |
+       v
++------+--------------------------------------+
+|  public/*.html + CSS + JS (Chrome UI)     |
+|  Express API at /api/*                     |
++-------------------------------------------+
+
+Layers:
+- UI: HTML/CSS/vanilla JS under /public
+- API: Express.js REST + JWT
+- Tests: Playwright drives Chrome; POM encapsulates selectors and navigation
+- Fixtures: JSON test data (credentials, cards)
+- Reporting: HTML report (playwright-report/) + list reporter
+
+Parallel execution: workers default (or CI=2); booking tests use offset dates per workerIndex to reduce collisions.

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin — RideHub</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header" id="site-nav"></header>
+    <main class="container">
+      <h1>Admin dashboard</h1>
+      <div id="msg"></div>
+      <div class="admin-stats" id="stats"></div>
+      <h2>Recent bookings</h2>
+      <div style="overflow-x: auto">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>User</th>
+              <th>Bike</th>
+              <th>Pick-up</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="book-tb"></tbody>
+        </table>
+      </div>
+      <h2>Add bike</h2>
+      <div class="form-panel" style="max-width: 640px">
+        <form id="form-bike">
+          <div class="form-group">
+            <label>Brand</label>
+            <input name="brand" required />
+          </div>
+          <div class="form-group">
+            <label>Model</label>
+            <input name="model" required />
+          </div>
+          <div class="form-group">
+            <label>Type</label>
+            <select name="type" required>
+              <option value="road">road</option>
+              <option value="mountain">mountain</option>
+              <option value="city">city</option>
+              <option value="electric">electric</option>
+              <option value="hybrid">hybrid</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Price / day</label>
+            <input name="price_per_day" type="number" step="0.01" required />
+          </div>
+          <div class="form-group">
+            <label>Image URL</label>
+            <input name="image_url" type="url" required />
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea name="description"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Stock</label>
+            <input name="stock" type="number" min="0" value="1" />
+          </div>
+          <button type="submit" class="btn btn-primary">Create bike</button>
+        </form>
+      </div>
+    </main>
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script>
+      if (!auth.user() || !auth.isAdmin()) {
+        window.location.href = 'index.html';
+      }
+
+      async function loadDash() {
+        const msg = document.getElementById('msg');
+        try {
+          const d = await api.get('/admin/dashboard');
+          const x = d.data;
+          document.getElementById('stats').innerHTML =
+            '<p><strong>Customers:</strong> ' +
+            x.users +
+            ' · <strong>Bikes:</strong> ' +
+            x.bikes +
+            ' · <strong>Bookings:</strong> ' +
+            x.bookings +
+            ' · <strong>Revenue (paid):</strong> $' +
+            Number(x.revenue).toFixed(2) +
+            '</p>';
+          document.getElementById('book-tb').innerHTML = x.recent_bookings
+            .map(function (b) {
+              return (
+                '<tr><td>' +
+                b.id +
+                '</td><td>' +
+                (b.email || '') +
+                '</td><td>' +
+                b.brand +
+                ' ' +
+                b.model +
+                '</td><td>' +
+                b.pickup_datetime +
+                '</td><td>' +
+                b.status +
+                '</td><td><button type="button" class="btn btn-secondary btn-done" data-id="' +
+                b.id +
+                '">Mark completed</button></td></tr>'
+              );
+            })
+            .join('');
+
+          document.querySelectorAll('.btn-done').forEach(function (btn) {
+            btn.addEventListener('click', async function () {
+              try {
+                await api.patch('/bookings/' + btn.dataset.id, { status: 'completed' });
+                loadDash();
+              } catch (err) {
+                msg.innerHTML =
+                  '<div class="msg msg-error">' + (err.body?.message || err.message) + '</div>';
+              }
+            });
+          });
+        } catch (err) {
+          msg.innerHTML =
+            '<div class="msg msg-error">' + (err.body?.message || err.message) + '</div>';
+        }
+      }
+
+      document.getElementById('form-bike').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const f = e.target;
+        const msg = document.getElementById('msg');
+        msg.innerHTML = '';
+        try {
+          await api.post('/bikes', {
+            brand: f.brand.value.trim(),
+            model: f.model.value.trim(),
+            type: f.type.value,
+            price_per_day: Number(f.price_per_day.value),
+            image_url: f.image_url.value.trim(),
+            description: f.description.value.trim(),
+            stock: Number(f.stock.value || 1),
+            is_available: true,
+          });
+          msg.innerHTML = '<div class="msg msg-success">Bike created</div>';
+          f.reset();
+          loadDash();
+        } catch (err) {
+          msg.innerHTML =
+            '<div class="msg msg-error">' + (err.body?.message || err.message) + '</div>';
+        }
+      });
+
+      loadDash();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile — RideHub</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header" id="site-nav"></header>
+    <main class="container">
+      <h1>Profile</h1>
+      <div id="msg"></div>
+      <div class="detail-layout">
+        <div class="form-panel">
+          <h2>Your details</h2>
+          <form id="form-prof">
+            <div class="form-group">
+              <label>Email</label>
+              <input id="email" disabled />
+            </div>
+            <div class="form-group">
+              <label>Full name</label>
+              <input id="full_name" />
+            </div>
+            <div class="form-group">
+              <label>Phone</label>
+              <input id="phone" />
+            </div>
+            <h3>Change password</h3>
+            <div class="form-group">
+              <label>Current password</label>
+              <input type="password" id="cur_pw" autocomplete="current-password" />
+            </div>
+            <div class="form-group">
+              <label>New password</label>
+              <input type="password" id="new_pw" autocomplete="new-password" />
+            </div>
+            <button type="submit" class="btn btn-primary">Save</button>
+          </form>
+        </div>
+        <div class="booking-panel">
+          <h2>Rental history</h2>
+          <div style="overflow-x: auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Bike</th>
+                  <th>Pick-up</th>
+                  <th>Status</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody id="hist"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script>
+      if (!auth.user()) window.location.href = 'login.html';
+
+      async function load() {
+        try {
+          const p = await api.get('/profile');
+          document.getElementById('email').value = p.data.email;
+          document.getElementById('full_name').value = p.data.full_name;
+          document.getElementById('phone').value = p.data.phone || '';
+          const h = await api.get('/profile/history');
+          document.getElementById('hist').innerHTML = h.data
+            .map(function (x) {
+              return (
+                '<tr><td>' +
+                x.id +
+                '</td><td>' +
+                x.brand +
+                ' ' +
+                x.model +
+                '</td><td>' +
+                x.pickup_datetime +
+                '</td><td>' +
+                x.status +
+                '</td><td>$' +
+                Number(x.total_amount).toFixed(2) +
+                '</td></tr>'
+              );
+            })
+            .join('');
+        } catch (err) {
+          document.getElementById('msg').innerHTML =
+            '<div class="msg msg-error">' + (err.body?.message || err.message) + '</div>';
+        }
+      }
+
+      document.getElementById('form-prof').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const msg = document.getElementById('msg');
+        msg.innerHTML = '';
+        const body = {
+          full_name: document.getElementById('full_name').value.trim(),
+          phone: document.getElementById('phone').value.trim(),
+        };
+        const np = document.getElementById('new_pw').value;
+        if (np) {
+          body.current_password = document.getElementById('cur_pw').value;
+          body.new_password = np;
+        }
+        try {
+          const r = await api.put('/profile', body);
+          auth.setSession(localStorage.getItem('token'), {
+            id: r.data.id,
+            email: r.data.email,
+            full_name: r.data.full_name,
+            role: r.data.role,
+          });
+          msg.innerHTML = '<div class="msg msg-success">Saved</div>';
+          load();
+        } catch (err) {
+          msg.innerHTML =
+            '<div class="msg msg-error">' + (err.body?.message || err.message) + '</div>';
+        }
+      });
+
+      load();
+    </script>
+  </body>
+</html>

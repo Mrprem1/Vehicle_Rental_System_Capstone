@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment — RideHub</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header" id="site-nav"></header>
+    <main class="container">
+      <h1>Simulated payment</h1>
+      <p style="color: var(--muted)">
+        Use a valid Luhn card (e.g. 4532015112830366). Expiry MMYY must be future (e.g. 1230).         Card 4111111111111111 simulates issuer decline (Luhn-valid test PAN).
+      </p>
+      <div id="msg"></div>
+      <div class="form-panel" style="max-width: 480px">
+        <form id="form-pay">
+          <div class="form-group">
+            <label for="booking_id">Booking ID</label>
+            <input type="number" id="booking_id" data-testid="pay-booking-id" required min="1" />
+          </div>
+          <div class="form-group">
+            <label for="card">Card number</label>
+            <input id="card" data-testid="pay-card" autocomplete="off" required />
+          </div>
+          <div class="form-group">
+            <label for="expiry">Expiry (MMYY)</label>
+            <input
+              id="expiry"
+              data-testid="pay-expiry"
+              maxlength="4"
+              pattern="\d{4}"
+              inputmode="numeric"
+              placeholder="1230"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="cvv">CVV</label>
+            <input id="cvv" data-testid="pay-cvv" maxlength="4" inputmode="numeric" required />
+          </div>
+          <button type="submit" class="btn btn-primary" data-testid="pay-submit">Pay</button>
+        </form>
+      </div>
+    </main>
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script>
+      if (!auth.user()) window.location.href = 'login.html';
+      const params = new URLSearchParams(window.location.search);
+      const bid = params.get('booking_id');
+      if (bid) document.getElementById('booking_id').value = bid;
+
+      document.getElementById('form-pay').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const msg = document.getElementById('msg');
+        msg.innerHTML = '';
+        try {
+          const r = await api.post('/payments/simulate', {
+            booking_id: Number(document.getElementById('booking_id').value),
+            card_number: document.getElementById('card').value.trim(),
+            expiry: document.getElementById('expiry').value.trim(),
+            cvv: document.getElementById('cvv').value.trim(),
+            method: 'card',
+          });
+          msg.innerHTML =
+            '<div class="msg ' +
+            (r.success ? 'msg-success' : 'msg-error') +
+            '">' +
+            (r.message || 'Done') +
+            '</div>';
+        } catch (err) {
+          msg.innerHTML =
+            '<div class="msg msg-error">' + (err.body?.message || err.message) + '</div>';
+        }
+      });
+    </script>
+  </body>
+</html>

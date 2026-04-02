@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My bookings — RideHub</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header" id="site-nav"></header>
+    <main class="container">
+      <h1>My bookings</h1>
+      <p style="color: var(--muted)">Reschedule dates or cancel. Payment simulates on the payment page.</p>
+      <div id="msg"></div>
+      <div style="overflow-x: auto">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Bike</th>
+              <th>Pick-up</th>
+              <th>Drop-off</th>
+              <th>Status</th>
+              <th>Total</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </main>
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script>
+      if (!auth.user()) window.location.href = 'login.html';
+
+      async function load() {
+        const msg = document.getElementById('msg');
+        msg.innerHTML = '';
+        try {
+          const r = await api.get('/bookings');
+          const tb = document.getElementById('tbody');
+          tb.innerHTML = '';
+          r.data.forEach(function (b) {
+            const tr = document.createElement('tr');
+            const pay =
+              b.status !== 'cancelled'
+                ? '<a href="payment.html?booking_id=' + b.id + '">Pay</a>'
+                : '';
+            tr.innerHTML =
+              '<td>' +
+              b.id +
+              '</td><td>' +
+              b.brand +
+              ' ' +
+              b.model +
+              '</td><td>' +
+              b.pickup_datetime +
+              '</td><td>' +
+              b.dropoff_datetime +
+              '</td><td>' +
+              b.status +
+              '</td><td>$' +
+              Number(b.total_amount).toFixed(2) +
+              '</td><td>' +
+              pay +
+              ' <button type="button" class="btn btn-secondary btn-cancel" data-id="' +
+              b.id +
+              '">Cancel</button> <button type="button" class="btn btn-secondary btn-res" data-id="' +
+              b.id +
+              '">+1 day</button></td>';
+            tb.appendChild(tr);
+          });
+
+          tb.querySelectorAll('.btn-cancel').forEach(function (btn) {
+            btn.addEventListener('click', async function () {
+              if (!confirm('Cancel this booking?')) return;
+              try {
+                await api.patch('/bookings/' + btn.dataset.id, { status: 'cancelled' });
+                load();
+              } catch (err) {
+                msg.innerHTML =
+                  '<div class="msg msg-error">' + (err.body?.message || err.message) + '</div>';
+              }
+            });
+          });
+          tb.querySelectorAll('.btn-res').forEach(function (btn) {
+            btn.addEventListener('click', async function () {
+              const row = r.data.find(function (x) {
+                return String(x.id) === btn.dataset.id;
+              });
+              if (!row) return;
+              const pu = new Date(row.pickup_datetime);
+              const dr = new Date(row.dropoff_datetime);
+              pu.setDate(pu.getDate() + 1);
+              dr.setDate(dr.getDate() + 1);
+              try {
+                await api.patch('/bookings/' + btn.dataset.id, {
+                  pickup_datetime: pu.toISOString(),
+                  dropoff_datetime: dr.toISOString(),
+                });
+                load();
+              } catch (err) {
+                msg.innerHTML =
+                  '<div class="msg msg-error">' + (err.body?.message || err.message) + '</div>';
+              }
+            });
+          });
+        } catch (err) {
+          msg.innerHTML =
+            '<div class="msg msg-error">' + (err.body?.message || err.message) + '</div>';
+        }
+      }
+      load();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register — RideHub</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header" id="site-nav"></header>
+    <main class="container">
+      <div class="form-panel">
+        <h2>Create account</h2>
+        <p style="color: var(--muted); font-size: 0.9rem">
+          Password: min 8 chars, upper, lower, number, special character.
+        </p>
+        <div id="msg"></div>
+        <form id="form-reg" novalidate>
+          <div class="form-group">
+            <label for="full_name">Full name</label>
+            <input id="full_name" data-testid="reg-name" required minlength="2" />
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input id="email" data-testid="reg-email" type="email" required />
+          </div>
+          <div class="form-group">
+            <label for="phone">Phone (optional)</label>
+            <input id="phone" />
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input id="password" data-testid="reg-password" type="password" required />
+          </div>
+          <button type="submit" class="btn btn-primary" data-testid="reg-submit">Register</button>
+        </form>
+        <p style="margin-top: 1rem"><a href="login.html">Already have an account?</a></p>
+      </div>
+    </main>
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script>
+      document.getElementById('form-reg').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const msg = document.getElementById('msg');
+        msg.innerHTML = '';
+        const body = {
+          full_name: document.getElementById('full_name').value.trim(),
+          email: document.getElementById('email').value.trim(),
+          phone: document.getElementById('phone').value.trim() || undefined,
+          password: document.getElementById('password').value,
+        };
+        try {
+          const r = await api.post('/auth/register', body);
+          auth.setSession(r.token, r.user);
+          window.location.href = 'bikes.html';
+        } catch (err) {
+          let m = err.body?.message || err.message;
+          if (err.body?.errors?.length) {
+            m = err.body.errors.map((x) => x.msg).join('; ');
+          }
+          msg.innerHTML = '<div class="msg msg-error">' + m + '</div>';
+        }
+      });
+    </script>
+  </body>
+</html>

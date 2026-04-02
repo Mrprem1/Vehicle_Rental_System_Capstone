@@ -1,0 +1,7 @@
+{
+  "admin": { "email": "admin@bike.local", "password": "Test@123" },
+  "customer": { "email": "customer@bike.local", "password": "Test@123" },
+  "validCard": "4532015112830366",
+  "declineCard": "4111111111111111",
+  "invalidCard": "1234567890123456"
+}

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bikes — RideHub</title>
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <header class="site-header" id="site-nav"></header>
+    <main class="container">
+      <h1>Bike inventory</h1>
+      <p style="color: var(--muted)">Filter by type, brand, price, and availability.</p>
+      <div class="filters">
+        <label>
+          Search
+          <input type="search" id="f-search" placeholder="Brand, model..." />
+        </label>
+        <label>
+          Type
+          <select id="f-type">
+            <option value="">All</option>
+            <option value="road">Road</option>
+            <option value="mountain">Mountain</option>
+            <option value="city">City</option>
+            <option value="electric">Electric</option>
+            <option value="hybrid">Hybrid</option>
+          </select>
+        </label>
+        <label>
+          Brand
+          <input type="text" id="f-brand" placeholder="e.g. Trek" />
+        </label>
+        <label>
+          Min price
+          <input type="number" id="f-min" min="0" step="1" />
+        </label>
+        <label>
+          Max price
+          <input type="number" id="f-max" min="0" step="1" />
+        </label>
+        <label>
+          <input type="checkbox" id="f-avail" /> Available only
+        </label>
+        <button type="button" class="btn btn-primary" id="btn-apply" data-testid="filter-apply">Apply</button>
+      </div>
+      <div id="msg"></div>
+      <div class="card-grid" id="grid" data-testid="bike-grid"></div>
+    </main>
+    <script src="js/api.js"></script>
+    <script src="js/layout.js"></script>
+    <script>
+      function qs() {
+        const p = new URLSearchParams();
+        const s = document.getElementById('f-search').value.trim();
+        const t = document.getElementById('f-type').value;
+        const b = document.getElementById('f-brand').value.trim();
+        const min = document.getElementById('f-min').value;
+        const max = document.getElementById('f-max').value;
+        const av = document.getElementById('f-avail').checked;
+        if (s) p.set('search', s);
+        if (t) p.set('type', t);
+        if (b) p.set('brand', b);
+        if (min !== '') p.set('min_price', min);
+        if (max !== '') p.set('max_price', max);
+        if (av) p.set('available_only', '1');
+        return p.toString() ? '?' + p.toString() : '';
+      }
+
+      async function load() {
+        const msg = document.getElementById('msg');
+        msg.innerHTML = '';
+        try {
+          const r = await api.get('/bikes' + qs());
+          const grid = document.getElementById('grid');
+          grid.innerHTML = '';
+          r.data.forEach(function (bike) {
+            const a = document.createElement('article');
+            a.className = 'bike-card';
+            a.innerHTML =
+              '<img src="' +
+              bike.image_url +
+              '" alt="" loading="lazy" />' +
+              '<div class="bike-card-body">' +
+              '<h3>' +
+              bike.brand +
+              ' ' +
+              bike.model +
+              '</h3>' +
+              '<div class="bike-meta">' +
+              bike.type +
+              ' · Stock ' +
+              bike.stock +
+              (bike.is_available ? '' : ' · Unavailable') +
+              '</div>' +
+              '<div class="rating">★ ' +
+              Number(bike.rating_avg).toFixed(1) +
+              ' (' +
+              bike.rating_count +
+              ')</div>' +
+              '<div class="price">$' +
+              Number(bike.price_per_day).toFixed(2) +
+              '/day</div>' +
+              '<a class="btn btn-secondary" style="margin-top:0.75rem" href="bike-detail.html?id=' +
+              bike.id +
+              '">Details</a>' +
+              '</div>';
+            grid.appendChild(a);
+          });
+        } catch (err) {
+          msg.innerHTML =
+            '<div class="msg msg-error">' + (err.body?.message || err.message) + '</div>';
+        }
+      }
+
+      document.getElementById('btn-apply').addEventListener('click', load);
+      load();
+    </script>
+  </body>
+</html>
