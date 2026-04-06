@@ -9,7 +9,11 @@ module.exports = {
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 2 : undefined,
-  reporter: [['html', { open: 'never' }], ['list']],
+ reporter: [
+    ['list'],
+    ['html', { outputFolder: path.join(__dirname, 'reports/html-report'), open: 'never' }],
+    ['allure-playwright', { resultsDir: path.join(__dirname, 'reports/allure-results') }],
+  ],
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:3000',
     trace: 'retain-on-failure',

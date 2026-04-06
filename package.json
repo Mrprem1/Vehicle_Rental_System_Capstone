@@ -10,6 +10,8 @@
     "test": "playwright test",
     "test:headed": "playwright test --headed",
     "test:report": "playwright show-report playwright-report",
+    "allure:generate": "allure generate allure-results --clean -o allure-report",
+    "allure:open": "allure open allure-report",
     "playwright:install": "playwright install chromium"
   },
   "engines": {
@@ -25,6 +27,8 @@
     "mysql2": "^3.11.3"
   },
   "devDependencies": {
-    "@playwright/test": "^1.49.0"
+    "@playwright/test": "^1.49.0",
+    "allure-commandline": "^2.38.1",
+    "allure-playwright": "^3.6.0"
   }
 }
